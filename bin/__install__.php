@@ -1,104 +1,113 @@
 #!/usr/bin/env php
 <?php
+namespace Installer;
+
 /**
  * User: rakeshshrestha
  * Date: 6/06/2016
  * Time: 10:33 AM
  */
-// Init
-$basePath = str_replace("/bin", "", __DIR__);
+use \Phalcon\Di\FactoryDefault\Cli as CliDI,
+    \Phalcon\Cli\Console as ConsoleApp,
+    Installer\Builder\Config as ConfigBuilder
+    ;
 
-// Lets ask some questions
-$projectName = request(" Api Host ? ", getProjectName());
-$dbAdapter = request(" Database adaptert? default ","Mysql");
-$dbHost = request(" Database host? default ","localhost");
-$dbUser = request(" Database user? default ","root");
-$dbPassword = request(" Database password? ");
-$dbName = request(" Database name? default ","ouffer_preview");
-$allowedOrigins = request(" Allowed Origins? default ","*");
-$apiToken = request(" Api token? default ",getRandomToken());
 
-while(empty($configFile)){
-    $configFile  = request(" File path to api config (json) file? ");
+define('VERSION', '1.0.0');
+define('APPLICATION_ENV', 'development');
+// Define paths
+defined('BASE_PATH') || define('BASE_PATH',  str_replace('/bin','',realpath(__DIR__)));
+defined('APPLICATION_PATH') || define('APPLICATION_PATH', BASE_PATH . '/app');
+defined('CONFIG_PATH') || define('CONFIG_PATH', APPLICATION_PATH . '/configs');
+
+date_default_timezone_set('UTC');
+
+// Update/ install dependencies, use composer
+//exec("composer install -d " . BASE_PATH);
+
+// Loaders
+// Require Composer autoload
+require BASE_PATH . '/vendor/autoload.php';
+
+$loader = new \Phalcon\Loader();
+//$loader->registerDirs(
+//    array(
+//        APPLICATION_PATH . '/library/App/Model',
+//        APPLICATION_PATH . '/library/App/Helpers',
+//    )
+//);
+
+
+$loader->registerNamespaces([
+    'Installer' => BASE_PATH .'/bin/',
+]);
+
+$loader->register();
+
+// Load configurations
+$configPath = CONFIG_PATH . '/default.php';
+
+if (!is_readable($configPath)) {
+    new ConfigBuilder();
 }
 
-$defaultConfigs = "<?php
-return [
-    'application' => [
-        'title' => '{$projectName} REST Api',
-        'description' => 'This is {$projectName} REST Api application.',
-        'baseUri' => '/',
-        'viewsDir' => __DIR__ . '/../views/',
-    ],
-    'authentication' => [
-        'secret' => '{$apiToken}',
-        'expirationTime' => 86400 * 7, // One week till token expires
-    ]
-];
+$config = new \Phalcon\Config(include_once $configPath);
 
-";
-$devConfigs = "<?php
-return [
-    'debug' => true,
-    'hostName' => 'http://{$projectName}.api',
-    'clientHostName' => 'http://{$projectName}.api',
-    'database' => [
-        'adapter' => '{$dbAdapter}',
-        'host' => '{$dbHost}',
-        'username' => '{$dbUser}',
-        'password' => '{$dbPassword}',
-        'dbname' => '{$dbName}',
-    ],
-    'cors' => [
-        'allowedOrigins' => ['{$allowedOrigins}']
-    ]
-]";
+$overridePath = CONFIG_PATH . '/server.' . APPLICATION_ENV . '.php';
 
-// Create config files
-
-$defaultConfigFile = fopen($basePath .'/app/configs/default.php', 'w');
-fputs($defaultConfigFile, $defaultConfigs);
-
-$devConfigFile = fopen($basePath .'/app/configs/server.development.php', 'w');
-fputs($devConfigFile, $devConfigs);
-fclose($devConfigFile);
-fclose($defaultConfigFile);
-
-exit(0); // Finish
-
-
-// Functions to keep things simpler
-function request($promptStr,$defaultVal=false){;
-
-    if($defaultVal) {
-        echo $promptStr. "[". $defaultVal. "] : ";
-    }
-    else {
-        echo $promptStr. ": ";
-    }
-    $name = chop(fgets(STDIN));
-    if(empty($name)) {
-        return $defaultVal;
-    }
-    else {
-        return $name;
-    }
+if (!is_readable($overridePath)) {
+    throw new \Exception('Unable to read config from ' . $overridePath);
 }
 
-function getProjectName(){
-    $argv = $_SERVER['argv'];
-    $projectName = '';
-    if(!empty($argv[1])) {
-        $projectName = $argv[1];
-    }else{
-        $pathParts = explode("/", __DIR__);
-        $projectName = $pathParts[count($pathParts)-2];
-    }
+$override = new \Phalcon\Config(include_once $overridePath);
 
-    return $projectName;
-}
+$config = $config->merge($override);
+
+// Using the CLI factory default services container
+$di = new CliDI();
 
 
-function getRandomToken(){
-    return bin2hex(openssl_random_pseudo_bytes(4));
+$di->setShared('config', function () use ($config) {
+
+    return $config;
+});
+
+$apiDefintion = new \Phalcon\Config\Adapter\Json(CONFIG_PATH . DIRECTORY_SEPARATOR . $config->application->apiDefinition);
+$di->setShared('api_definition', function () use ($apiDefintion) {
+    return $apiDefintion;
+});
+
+// Load database services
+$di->set('database', function () use ($config, $di) {
+
+    $dbClass = 'Phalcon\Db\Adapter\Pdo\\' . $config->database->adapter;
+    $connection = new $dbClass(array(
+        "host" => $config->database->host,
+        "username" => $config->database->username,
+        "password" => $config->database->password,
+        "dbname" => $config->database->dbname
+    ));
+
+    //Assign the eventsManager to the db adapter instance
+    $connection->setEventsManager($di->get('eventsManager'));
+
+    return $connection;
+});
+
+// Create a console application
+$console = new ConsoleApp();
+$console->setDI($di);
+
+// Process the console arguments
+$arguments =[
+    'task' => __NAMESPACE__ . '\Builder\\Build',
+    'action' => 'main'
+] ;
+
+try {
+    // Handle incoming arguments
+    $console->handle($arguments);
+} catch (\Phalcon\Exception $e) {
+    echo $e->getMessage();
+    exit(255);
 }
