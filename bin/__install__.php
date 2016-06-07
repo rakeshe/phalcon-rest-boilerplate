@@ -15,6 +15,7 @@ use \Phalcon\Di\FactoryDefault\Cli as CliDI,
 
 define('VERSION', '1.0.0');
 define('APPLICATION_ENV', 'development');
+
 // Define paths
 defined('BASE_PATH') || define('BASE_PATH',  str_replace('/bin','',realpath(__DIR__)));
 defined('APPLICATION_PATH') || define('APPLICATION_PATH', BASE_PATH . '/app');
@@ -23,19 +24,13 @@ defined('CONFIG_PATH') || define('CONFIG_PATH', APPLICATION_PATH . '/configs');
 date_default_timezone_set('UTC');
 
 // Update/ install dependencies, use composer
-//exec("composer install -d " . BASE_PATH);
+exec("composer install -d " . BASE_PATH);
 
-// Loaders
 // Require Composer autoload
 require BASE_PATH . '/vendor/autoload.php';
 
+// Loaders
 $loader = new \Phalcon\Loader();
-//$loader->registerDirs(
-//    array(
-//        APPLICATION_PATH . '/library/App/Model',
-//        APPLICATION_PATH . '/library/App/Helpers',
-//    )
-//);
 
 
 $loader->registerNamespaces([
