@@ -26,16 +26,15 @@ class Config
 
 
         // Lets ask some questions
-        self::printMessage("Code Generator for Phalcon Rest Api\nBugs/comments: rakeshshrestha@luxgroup.com");
 
-        $this->projectName = $this->request(" Api Host ? ", $this->getProjectName());
+        $this->projectName = $this->request(" Api Host ? ", Helper::getProjectName());
         $this->dbAdapter = $this->request(" Database adaptert? default ", $this->dbAdapter);
         $this->dbHost = $this->request(" Database host? default ", $this->dbHost);
         $this->dbUser = $this->request(" Database user? default ", $this->dbUser);
         $this->dbPassword = $this->request(" Database password? ");
         $this->dbName = $this->request(" Database name? default ", $this->dbName);
         $this->allowedOrigins = $this->request(" Allowed Origins? default ", $this->allowedOrigins);
-        $this->apiToken = $this->request(" Api token? default ", $this->getRandomToken());
+        $this->apiToken = $this->request(" Api token? default ", Helper::getRandomToken());
 
         while (empty($definitionFile)) {
             $definitionFile = $this->request(" File path to api config definition (json) file? ");
@@ -46,26 +45,14 @@ class Config
             ->setDefaultServerConfigs()
             ->write();
 
-        $thisHost = "http://" . $this->getProjectName() . ".api";
-        $endMsg = "Your " . $this->getProjectName() . " Api is all setup\nNext steps:\nSetup Virtual host for {$thisHost}" .
+        $thisHost = "http://" . Helper::getProjectName() . ".api";
+        $endMsg = "Your " . Helper::getProjectName() . " Api is all setup\nNext steps:\nSetup Virtual host for {$thisHost}" .
             "\nand restart your webserver.\n\nApi Documentation:\n{$thisHost}/documentation.html\n\njson file for Postman:" .
             "\n{$thisHost}/export/postman.json\n\nBugs/comments: rakeshshrestha@luxgroup.com";
-        self::printMessage($endMsg);
+        Helper::printMessage($endMsg);
 
     }
 
-    public static function printMessage($message)
-    {
-        $messages = explode("\n", $message);
-        printf("+%'-50s+\n",  "");
-        printf("+%-50s+\n",  "");
-        foreach ($messages as $msg){
-            printf("+%-50s+\n",  "   ". $msg);
-        }
-        printf("+%-50s+\n",  "");
-        printf("+%'-50s+\n",  "");
-
-    }
     /**
      * @param mixed $defaultConfigs
      */
@@ -162,25 +149,6 @@ return [
         } else {
             return $name;
         }
-    }
-
-    protected function getProjectName()
-    {
-        $argv = $_SERVER['argv'];
-        if (!empty($argv[1])) {
-            $projectName = $argv[1];
-        } else {
-            $pathParts = explode("/", __DIR__);
-            $projectName = $pathParts[count($pathParts) - 3];
-        }
-
-        return $projectName;
-    }
-
-
-    public static function getRandomToken()
-    {
-        return bin2hex(openssl_random_pseudo_bytes(4));
     }
 
 
