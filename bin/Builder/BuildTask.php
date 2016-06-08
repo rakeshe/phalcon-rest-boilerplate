@@ -24,13 +24,10 @@ class BuildTask extends \Phalcon\Cli\Task
     public function mainAction()
     {
         $this->apiDefinition = $this->di->getShared('api_definition');
-//        $this->buildBootstraps();
-//        $this->buildResources();
-//        $this->buildModels();
-//
+
         // Build Objects: Model, Resources, Transformers, Controllers, then Bootstrap
-        $bootstrapStubDefinition ='';
-        $bootstrapStub ='';
+        $bootstrapStubDefinition = '';
+        $bootstrapStub = '';
         foreach ($this->apiDefinition as $collectionType => $items) {
             foreach ($items as $resource => $options) {
                 $className = Utils::camelize($resource);
@@ -43,17 +40,20 @@ class BuildTask extends \Phalcon\Cli\Task
 
                 // Build Resource
                 $file = $this->getObjectFilePath($className, self::PATH_RESOURCES);
-                $code = self::getStubDefinitionResources() . self::getStubResource($resource, $options) . ";\n}\n}";
+                $code = self::getStub('resources') . self::getStubResource($resource, $options) . ";\n}\n}";
                 $this->write($file, $code);
 
                 // Build Transformer
                 $file = $this->getObjectFilePath($className, self::PATH_TRANSFORMERS);
-                $code = self::getStubDefinitionTransformers() . self::getStubTransformer($className);
+                $code = self::getStub('transformers') . self::getStubTransformer($className);
                 $this->write($file, $code);
-
+                
+                // @todo Build Controller
+                
+                // Bootrapable items
                 $scope = self::getConfigItem($options, 'scope', 'factory');
                 $collectionClassName = Utils::camelize($resource) . Utils::camelize($collectionType);
-                $bootstrapStubDefinition .= "use App\\" . Utils::camelize($collectionType) ."s\\" . $collectionClassName  .";\n";
+                $bootstrapStubDefinition .= "use App\\" . Utils::camelize($collectionType) . "s\\" . $collectionClassName . ";\n";
                 $bootstrapStub .= "\n\t\t\t->collection(" . $collectionClassName . "::" . $scope . "('/" . $resource . "s'))";
 
             }
@@ -61,82 +61,16 @@ class BuildTask extends \Phalcon\Cli\Task
 
         // Build Bootstrap
         $file = $this->getObjectFilePath('Collection', self::PATH_BOOTSTRAP);
-        $code = self::getStubDefinitionBootstrap() . $bootstrapStubDefinition . self::getStubBootstrap() . $bootstrapStub . ";\n\t}\n}";
+        $code = self::getStub('bootstrap') . $bootstrapStubDefinition . self::getStubBootstrap() . $bootstrapStub . ";\n\t}\n}";
         $this->write($file, $code);
     }
 
-    /*protected function buildModels()
+    public static function getStub($locator)
     {
-
-        foreach ($this->apiDefinition as $collectionType => $items) {
-            foreach ($items as $resource => $options) {
-                $resource = !empty($options->model) ? $options->model : $resource;
-                $resource = \Phalcon\Text::uncamelize($resource);
-                $modelBuilder = new ModelBuilder(ModelBuilder::getDefaultOptions($resource));
-                $modelBuilder->build();
-            }
-        }
-
-
-    }*/
-
-
-    /*protected function buildBootstraps()
-    {
-        $file = $this->getObjectFilePath('Collection', self::PATH_BOOTSTRAP);
-
-        $preCode = '<?php
-            
-namespace App\\Bootstrap;
-
-use App\\BootstrapInterface;
-use App\\Collections\\ExportCollection;
-use App\\Resources\\UserResource;
-use Phalcon\\Acl;
-use Phalcon\\Config;
-use Phalcon\\DiInterface;
-use PhalconRest\\Api;
-';
-
-        $code = 'class CollectionBootstrap implements BootstrapInterface
-{
-    public function run(Api $api, DiInterface $di, Config $config)
-    {
-        $api
-            ->collection(ExportCollection::factory(\'/export\'))
-            ->resource(UserResource::factory(\'/users\'))
-            ';
-
-        foreach ($this->apiDefinition as $collectionType => $items) {
-            foreach ($items as $name => $options) {
-                $scope = self::getConfigItem($options, 'scope', 'factory');
-                $className = Utils::camelize($name) . Utils::camelize($collectionType);
-                $preCode .= "use App\\" . Utils::camelize($collectionType) ."s\\" . $className  .";\n";
-                $code .= "\n\t\t\t->" . $collectionType . "(" . $className . "::" . $scope . "('/" . $name . "s'))";
-            }
-        }
-
-        $code = $preCode . $code . ";\n\t}\n}";
-
-        $this->write($file, $code);
-    }*/
-
-    protected function buildCollections()
-    {
-
+        $file = BASE_PATH . '/bin/Stub/' . $locator . '.def.stub';
+        return file_exists($file) ? file_get_contents($file) : '';
     }
 
-
-    public static function getStubDefinitionResources(){
-     return '<?php
-namespace App\Resources;
-
-use PhalconRest\Constants\HttpMethods;
-use PhalconRest\Api\Resource;
-use PhalconRest\Api\Endpoint;
-use App\Constants\AclRoles;
-';
-    }
 
     public static function getStubResource($resource, $options)
     {
@@ -144,8 +78,8 @@ use App\Constants\AclRoles;
         $modelClassName = self::getConfigItem($options, 'model', $name);
         $transformerClassName = self::getConfigItem($options, 'transformer', $name) . 'Transformer';
 
-        $code = "\nuse App\\Model\\" . $modelClassName .";";
-        $code .= "\nuse App\\Transformers\\" . $transformerClassName .";";
+        $code = "\nuse App\\Model\\" . $modelClassName . ";";
+        $code .= "\nuse App\\Transformers\\" . $transformerClassName . ";";
 
         $code .= '
         
@@ -173,44 +107,23 @@ class ' . $name . 'Resource extends Resource {
 
     }
 
-    public static function getStubDefinitionTransformers()
+    public static function getStubTransformer($className)
     {
-        return "<?php
 
-namespace App\\Transformers;
+        $code = '
+use App\Model\\' . $className . ';
 
-use PhalconRest\\Transformers\\ModelTransformer;";
-    }
-
-    public static function getStubTransformer($className){
-
-        $code  = '
-use App\Model\\' . $className .';
-
-class '. $className .'Transformer extends ModelTransformer
+class ' . $className . 'Transformer extends ModelTransformer
 {
-    protected $modelClass = '. $className .'::class;
+    protected $modelClass = ' . $className . '::class;
 }
 ';
 
         return $code;
     }
-    public static function getStubDefinitionBootstrap(){
-        return '<?php
-            
-namespace App\\Bootstrap;
 
-use App\\BootstrapInterface;
-use App\\Collections\\ExportCollection;
-use App\\Resources\\UserResource;
-use Phalcon\\Acl;
-use Phalcon\\Config;
-use Phalcon\\DiInterface;
-use PhalconRest\\Api;
-';
-    }
-
-    public static function getStubBootstrap(){
+    public static function getStubBootstrap()
+    {
         return 'class CollectionBootstrap implements BootstrapInterface
 {
     public function run(Api $api, DiInterface $di, Config $config)
@@ -220,23 +133,6 @@ use PhalconRest\\Api;
             ->resource(UserResource::factory(\'/users\'))
             ';
     }
-
-    /*protected function buildResources()
-    {
-
-        foreach ($this->apiDefinition as $collectionType => $items) {
-            foreach ($items as $resource => $options) {
-                $className = Utils::camelize($resource);
-                $file = $this->getObjectFilePath($className, self::PATH_RESOURCES);
-                $code = $preCode . $this->getResourceCode($resource, $options) . ";\n}\n}";
-                $this->write($file, $code);
-            }
-        }
-
-    }*/
-
-
-
 
     public static function getConfigItem(\Phalcon\Config $config, $item, $defaultValue)
     {
@@ -254,17 +150,11 @@ use PhalconRest\\Api;
         }
     }
 
-    protected function buildControllers()
-    {
-
-    }
-
-
 
     protected function getObjectFilePath($className, $classType)
     {
         // Remove trailing 's'
-        $classNameSuffix = substr($classType,-1) =='s' ? rtrim($classType, 's') : $classType;
+        $classNameSuffix = substr($classType, -1) == 's' ? rtrim($classType, 's') : $classType;
         return APPLICATION_PATH . DIRECTORY_SEPARATOR . self::OUTPUT_PATH . DIRECTORY_SEPARATOR . $classType . DIRECTORY_SEPARATOR . $className . $classNameSuffix . ".php";
     }
 
