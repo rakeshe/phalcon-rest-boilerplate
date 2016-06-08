@@ -26,6 +26,8 @@ class Config
 
 
         // Lets ask some questions
+        self::printMessage("Code Generator for Phalcon Rest Api\nBugs/comments: rakeshshrestha@luxgroup.com");
+
         $this->projectName = $this->request(" Api Host ? ", $this->getProjectName());
         $this->dbAdapter = $this->request(" Database adaptert? default ", $this->dbAdapter);
         $this->dbHost = $this->request(" Database host? default ", $this->dbHost);
@@ -44,8 +46,26 @@ class Config
             ->setDefaultServerConfigs()
             ->write();
 
+        $thisHost = "http://" . $this->getProjectName() . ".api";
+        $endMsg = "Your " . $this->getProjectName() . " Api is all setup\nNext steps:\nSetup Virtual host for {$thisHost}" .
+            "\nand restart your webserver.\n\nApi Documentation:\n{$thisHost}/documentation.html\n\njson file for Postman:" .
+            "\n{$thisHost}/export/postman.json\n\nBugs/comments: rakeshshrestha@luxgroup.com";
+        self::printMessage($endMsg);
+
     }
 
+    public static function printMessage($message)
+    {
+        $messages = explode("\n", $message);
+        printf("+%'-50s+\n",  "");
+        printf("+%-50s+\n",  "");
+        foreach ($messages as $msg){
+            printf("+%-50s+\n",  "   ". $msg);
+        }
+        printf("+%-50s+\n",  "");
+        printf("+%'-50s+\n",  "");
+
+    }
     /**
      * @param mixed $defaultConfigs
      */
