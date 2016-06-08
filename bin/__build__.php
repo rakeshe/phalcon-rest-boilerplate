@@ -9,7 +9,8 @@ namespace Installer;
  */
 use \Phalcon\Di\FactoryDefault\Cli as CliDI,
     \Phalcon\Cli\Console as ConsoleApp,
-    Installer\Builder\Config as ConfigBuilder
+    Installer\Builder\Config as ConfigBuilder,
+    Installer\Builder\Helper as Helper
     ;
 
 
@@ -23,21 +24,20 @@ defined('CONFIG_PATH') || define('CONFIG_PATH', APPLICATION_PATH . '/configs');
 
 date_default_timezone_set('UTC');
 
+// Loaders
+$loader = new \Phalcon\Loader();
+$loader->registerNamespaces([
+    'Installer' => BASE_PATH .'/bin/',
+]);
+$loader->register();
+
+Helper::printMessage("Code Generator for Phalcon Rest Api\nBugs/comments: rakeshshrestha@luxgroup.com");
+
 // Update/ install dependencies, use composer
 exec("composer install -d " . BASE_PATH);
 
 // Require Composer autoload
 require BASE_PATH . '/vendor/autoload.php';
-
-// Loaders
-$loader = new \Phalcon\Loader();
-
-
-$loader->registerNamespaces([
-    'Installer' => BASE_PATH .'/bin/',
-]);
-
-$loader->register();
 
 // Load configurations
 $configPath = CONFIG_PATH . '/default.php';
