@@ -44,13 +44,7 @@ class Config
             ->setDefaultConfigs()
             ->setDefaultServerConfigs()
             ->write();
-
-        $thisHost = "http://" . Helper::getProjectName() . ".api";
-        $endMsg = "Your " . Helper::getProjectName() . " Api is all setup\nNext steps:\nSetup Virtual host for {$thisHost}" .
-            "\nand restart your webserver.\n\nApi Documentation:\n{$thisHost}/documentation.html\n\njson file for Postman:" .
-            "\n{$thisHost}/export/postman.json\n\nBugs/comments: rakeshshrestha@luxgroup.com";
-        Helper::printMessage($endMsg);
-
+        
     }
 
     /**

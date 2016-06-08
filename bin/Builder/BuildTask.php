@@ -63,6 +63,12 @@ class BuildTask extends \Phalcon\Cli\Task
         $file = $this->getObjectFilePath('Collection', self::PATH_BOOTSTRAP);
         $code = self::getStub('bootstrap') . $bootstrapStubDefinition . self::getStubBootstrap() . $bootstrapStub . ";\n\t}\n}";
         $this->write($file, $code);
+
+        $thisHost = "http://" . Helper::getProjectName() . ".api";
+        $endMsg = "\n\nYour " . Helper::getProjectName() . " Api is all setup\nNext steps:\nSetup Virtual host for {$thisHost}" .
+            "\nand restart your webserver.\n\nApi Documentation:\n{$thisHost}/documentation.html\n\njson file for Postman:" .
+            "\n{$thisHost}/export/postman.json\n\nBugs/comments: rakeshshrestha@luxgroup.com";
+        Helper::printMessage($endMsg);
     }
 
     public static function getStub($locator)
