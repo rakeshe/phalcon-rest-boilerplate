@@ -1,0 +1,7 @@
+<?php
+namespace App\Resources;
+
+use PhalconRest\Constants\HttpMethods;
+use PhalconRest\Api\Resource;
+use PhalconRest\Api\Endpoint;
+use App\Constants\AclRoles;
