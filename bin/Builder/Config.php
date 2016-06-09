@@ -26,6 +26,7 @@ class Config
 
 
         // Lets ask some questions
+        Helper::printMessage("\n\nBuild config files");
 
         $this->projectName = $this->request(" Api Host ? ", Helper::getProjectName());
         $this->dbAdapter = $this->request(" Database adaptert? default ", $this->dbAdapter);

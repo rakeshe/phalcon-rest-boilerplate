@@ -41,27 +41,17 @@ require BASE_PATH . '/vendor/autoload.php';
 
 // Load configurations
 $configPath = CONFIG_PATH . '/default.php';
-
-if (!is_readable($configPath)) {
-    new ConfigBuilder();
-}
-
-$config = new \Phalcon\Config(include_once $configPath);
-
 $overridePath = CONFIG_PATH . '/server.' . APPLICATION_ENV . '.php';
 
-if (!is_readable($overridePath)) {
-    throw new \Exception('Unable to read config from ' . $overridePath);
+if (!is_readable($configPath) || !is_readable($overridePath)) {
+    new ConfigBuilder();
 }
-
+$config = new \Phalcon\Config(include_once $configPath);
 $override = new \Phalcon\Config(include_once $overridePath);
-
 $config = $config->merge($override);
 
 // Using the CLI factory default services container
 $di = new CliDI();
-
-
 $di->setShared('config', function () use ($config) {
 
     return $config;

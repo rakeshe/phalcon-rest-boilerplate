@@ -33,7 +33,7 @@ try {
     $configPath = $configsPath . 'default.php';
 
     if (!is_readable($configPath)) {
-        throw new Exception('Unable to read config from ' . $configPath);
+        throw new Exception('Unable to read config' .(APPLICATION_ENV === 'development' ? ' from '. $configPath : ''));
     }
 
     $config = new Phalcon\Config(include_once $configPath);
@@ -41,7 +41,7 @@ try {
     $overridePath = __DIR__ . '/../app/configs/server.' . APPLICATION_ENV . '.php';
 
     if (!is_readable($overridePath)) {
-        throw new Exception('Unable to read config from ' . $overridePath);
+        throw new Exception('Unable to read config' .(APPLICATION_ENV === 'development' ? ' from '. $overridePath : ''));
     }
 
     $override = new Phalcon\Config(include_once $overridePath);
